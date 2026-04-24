@@ -5,11 +5,13 @@ import { Button } from '@/components/ui/button';
 interface DashboardHeaderProps {
   selectedMonth: string;
   onMonthChange: (month: string) => void;
+  onAdminClick?: () => void;
 }
 
 export default function DashboardHeader({
   selectedMonth,
   onMonthChange,
+  onAdminClick,
 }: DashboardHeaderProps) {
   const months = [
     { value: '2026-01', label: 'Janeiro' },
@@ -48,14 +50,26 @@ export default function DashboardHeader({
               </select>
             </div>
 
-            <Button
-              variant="outline"
-              size="sm"
-              className="gap-2 bg-slate-800 hover:bg-slate-700 border-slate-600 text-white"
-            >
-              <RefreshCw className="w-4 h-4" />
-              Atualizar
-            </Button>
+            <div className="flex items-center gap-3">
+              {onAdminClick ? (
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className="gap-2 bg-slate-800 hover:bg-slate-700 border-slate-600 text-white"
+                  onClick={onAdminClick}
+                >
+                  Admin
+                </Button>
+              ) : null}
+              <Button
+                variant="outline"
+                size="sm"
+                className="gap-2 bg-slate-800 hover:bg-slate-700 border-slate-600 text-white"
+              >
+                <RefreshCw className="w-4 h-4" />
+                Atualizar
+              </Button>
+            </div>
           </div>
         </div>
       </div>
