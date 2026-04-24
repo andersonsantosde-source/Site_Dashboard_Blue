@@ -35,26 +35,33 @@ npm install -g pnpm
 
 ### Passo a passo
 
-1. Abra um terminal na pasta `Dash_SalesOP`.
-2. Instale as dependências:
+1. Crie um arquivo `.env` na pasta `Dash_SalesOP` a partir de `.env.example`.
+
+2. Inicie o backend Python:
 
 ```bash
-pnpm install
+cd Dash_SalesOP/backend
+python3 -m pip install -r requirements.txt
+python app.py
 ```
 
-3. Inicie o servidor de desenvolvimento:
+3. Inicie o frontend em outra aba de terminal:
 
 ```bash
+cd Dash_SalesOP
 pnpm dev
 ```
 
-4. Abra no navegador:
+4. Acesse no navegador:
 
 ```text
-http://localhost:3000
+http://localhost:3000/admin
 ```
 
-> O `--host` permite acesso a partir de outras máquinas da mesma rede, útil em intranetes.
+### Observação
+
+- O backend Python foi validado com `python3 -m py_compile backend/app.py`.
+- A proteção admin é feita por senha no frontend via `VITE_ADMIN_PASSWORD`.
 
 ### Rodar em modo de produção local
 

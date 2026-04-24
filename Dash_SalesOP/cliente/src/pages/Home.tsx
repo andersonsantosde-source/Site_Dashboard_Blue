@@ -1,13 +1,10 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useEffect } from 'react';
+import { useLocation } from 'wouter';
 import {
-  SELLERS,
-  REGIONS,
-  COMMISSION_TIERS,
-  generateSalesMetrics,
-  calculateCommission,
-  generateSalesOpsAnalysis,
+  type Seller,
   type SalesMetrics,
   type CommissionData,
+  type SalesOpsAnalysis,
 } from '@/lib/salesData';
 import DashboardHeader from '@/components/DashboardHeader';
 import KPICards from '@/components/KPICards';
@@ -19,32 +16,47 @@ import CommissionDetails from '@/components/CommissionDetails';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 
 export default function Home() {
+  const [, setLocation] = useLocation();
   const [selectedMonth, setSelectedMonth] = useState('2026-04');
   const [selectedRegion, setSelectedRegion] = useState<string | null>(null);
   const [selectedSeller, setSelectedSeller] = useState<string | null>(null);
   const [activeTab, setActiveTab] = useState('overview');
+  const [sellers, setSellers] = useState<Seller[]>([]);
+  const [salesMetrics, setSalesMetrics] = useState<SalesMetrics[]>([]);
+  const [commissions, setCommissions] = useState<CommissionData[]>([]);
+  const [analysis, setAnalysis] = useState<SalesOpsAnalysis | null>(null);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
-  // Gerar dados de vendas
-  const salesMetrics = useMemo(() => {
-    return SELLERS.map((seller) =>
-      generateSalesMetrics(seller.id, selectedMonth, Math.random() * 0.5 + 0.8)
-    );
+  useEffect(() => {
+    async function fetchDashboard() {
+      setLoading(true);
+      setError(null);
+
+      try {
+        const response = await fetch(`/api/dashboard?month=${encodeURIComponent(selectedMonth)}`);
+        if (!response.ok) {
+          throw new Error(`Falha ao carregar dados: ${response.statusText}`);
+        }
+
+        const data = await response.json();
+        setSellers(data.sellers ?? []);
+        setSalesMetrics(data.salesMetrics ?? []);
+        setCommissions(data.commissions ?? []);
+        setAnalysis(data.analysis ?? null);
+      } catch (err) {
+        setError(err instanceof Error ? err.message : 'Erro desconhecido');
+      } finally {
+        setLoading(false);
+      }
+    }
+
+    fetchDashboard();
   }, [selectedMonth]);
 
-  // Calcular comissões
-  const commissions = useMemo(() => {
-    return salesMetrics.map((metrics) => calculateCommission(metrics));
-  }, [salesMetrics]);
-
-  // Análises de Sales Ops
-  const analysis = useMemo(() => {
-    return generateSalesOpsAnalysis(salesMetrics, commissions);
-  }, [salesMetrics, commissions]);
-
-  // Filtrar dados por região se selecionada
   const filteredSellers = selectedRegion
-    ? SELLERS.filter((s) => s.region === selectedRegion)
-    : SELLERS;
+    ? sellers.filter((s) => s.region === selectedRegion)
+    : sellers;
 
   const filteredMetrics = salesMetrics.filter((m) =>
     filteredSellers.some((s) => s.id === m.sellerId)
@@ -59,12 +71,32 @@ export default function Home() {
     setActiveTab('commission');
   };
 
+  if (error) {
+    return (
+      <div className="min-h-screen bg-slate-950 text-white flex items-center justify-center p-8">
+        <div className="max-w-2xl text-center">
+          <h1 className="text-2xl font-semibold mb-4">Erro ao carregar dados</h1>
+          <p>{error}</p>
+        </div>
+      </div>
+    );
+  }
+
+  if (loading || !analysis) {
+    return (
+      <div className="min-h-screen bg-slate-950 text-white flex items-center justify-center">
+        <p className="text-lg">Carregando dados do dashboard...</p>
+      </div>
+    );
+  }
+
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-950 via-slate-900 to-slate-950">
       {/* Header */}
       <DashboardHeader
         selectedMonth={selectedMonth}
         onMonthChange={setSelectedMonth}
+        onAdminClick={() => setLocation('/admin')}
       />
 
       {/* Main Content */}
@@ -109,7 +141,7 @@ export default function Home() {
           <TabsContent value="commission" className="space-y-6">
             <CommissionDetails
               selectedSeller={selectedSeller}
-              sellers={SELLERS}
+              sellers={sellers}
               metrics={salesMetrics}
               commissions={commissions}
               onSellerChange={(sellerId) => {
@@ -124,7 +156,7 @@ export default function Home() {
               regionData={analysis.regionPerformance}
               selectedRegion={selectedRegion}
               onRegionSelect={setSelectedRegion}
-              sellers={SELLERS}
+              sellers={sellers}
               metrics={salesMetrics}
               commissions={commissions}
             />

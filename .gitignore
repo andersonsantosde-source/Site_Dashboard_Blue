@@ -1,0 +1,18 @@
+# Node modules
+Dash_SalesOP/node_modules/
+
+# Vite / local dev files
+Dash_SalesOP/.manus-logs/
+
+# Python cache
+backend/__pycache__/
+backend/*.pyc
+backend/.pytest_cache/
+
+# Local environment files
+Dash_SalesOP/.env
+Dash_SalesOP/backend/.env
+
+# Data storage should keep .gitkeep only
+backend/data/*
+!backend/data/.gitkeep
