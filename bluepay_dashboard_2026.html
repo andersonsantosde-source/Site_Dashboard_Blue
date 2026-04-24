@@ -1,0 +1,1122 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>BluePay — Dashboard de Vendas 2026</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.js"></script>
+<style>
+  :root {
+    --navy: #0B1320;
+    --deep: #0F1B2E;
+    --mid: #162436;
+    --border: #1E293B;
+    --cyan: #00E0FF;
+    --cyan-glow: rgba(0,224,255,0.12);
+    --coral: #FF5A5F;
+    --amber: #FBBF24;
+    --white: #FFFFFF;
+    --silver: #94A3B8;
+    --muted: #64748B;
+    --green: #22C55E;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { background: var(--navy); color: var(--white); font-family: 'Segoe UI', system-ui, sans-serif; min-height: 100vh; }
+
+  /* HEADER */
+  .header { background: var(--deep); border-bottom: 1px solid var(--border); padding: 0 32px; display: flex; align-items: center; justify-content: space-between; height: 60px; }
+  .logo { display: flex; align-items: center; gap: 10px; }
+  .logo-mark { width: 32px; height: 32px; background: var(--cyan); border-radius: 6px; display: flex; align-items: center; justify-content: center; font-weight: 800; color: var(--navy); font-size: 14px; letter-spacing: -1px; }
+  .logo-text { font-size: 18px; font-weight: 700; color: var(--white); letter-spacing: -0.5px; }
+  .logo-sub { font-size: 11px; color: var(--muted); margin-top: 1px; }
+  .header-right { display: flex; align-items: center; gap: 20px; }
+  .refresh-badge { display: flex; align-items: center; gap: 6px; background: var(--mid); border: 1px solid var(--border); border-radius: 20px; padding: 4px 12px; font-size: 12px; color: var(--silver); }
+  .refresh-dot { width: 7px; height: 7px; border-radius: 50%; background: var(--green); animation: pulse 2s infinite; }
+  @keyframes pulse { 0%,100%{opacity:1} 50%{opacity:0.4} }
+  .last-update { font-size: 11px; color: var(--muted); }
+
+  /* TABS */
+  .tabs { background: var(--deep); border-bottom: 1px solid var(--border); padding: 0 32px; display: flex; gap: 0; }
+  .tab { padding: 14px 20px; font-size: 13px; font-weight: 500; color: var(--muted); cursor: pointer; border-bottom: 2px solid transparent; transition: all 0.2s; white-space: nowrap; }
+  .tab:hover { color: var(--silver); }
+  .tab.active { color: var(--cyan); border-bottom-color: var(--cyan); }
+
+  /* MAIN */
+  .main { padding: 24px 32px; max-width: 1600px; }
+
+  /* KPI CARDS */
+  .kpi-row { display: grid; grid-template-columns: repeat(4, 1fr); gap: 16px; margin-bottom: 24px; }
+  .kpi-card { background: var(--deep); border: 1px solid var(--border); border-radius: 8px; padding: 18px 20px; position: relative; overflow: hidden; }
+  .kpi-card::before { content:''; position:absolute; top:0; left:0; right:0; height:2px; background: var(--cyan); }
+  .kpi-label { font-size: 11px; color: var(--muted); text-transform: uppercase; letter-spacing: 0.8px; margin-bottom: 8px; }
+  .kpi-value { font-size: 30px; font-weight: 700; color: var(--white); letter-spacing: -1px; line-height: 1; }
+  .kpi-delta { display: inline-flex; align-items: center; gap: 4px; font-size: 12px; margin-top: 6px; padding: 2px 8px; border-radius: 4px; }
+  .kpi-delta.up { background: rgba(34,197,94,0.12); color: var(--green); }
+  .kpi-delta.down { background: rgba(255,90,95,0.12); color: var(--coral); }
+  .kpi-sub { font-size: 11px; color: var(--muted); margin-top: 4px; }
+
+  /* CHART CARDS */
+  .chart-row { display: grid; gap: 16px; margin-bottom: 24px; }
+  .chart-row.two { grid-template-columns: 1fr 1fr; }
+  .chart-row.wide { grid-template-columns: 2fr 1fr; }
+  .chart-row.three { grid-template-columns: repeat(3,1fr); }
+  .chart-card { background: var(--deep); border: 1px solid var(--border); border-radius: 8px; padding: 20px; }
+  .chart-title { font-size: 13px; font-weight: 600; color: var(--white); margin-bottom: 4px; }
+  .chart-sub { font-size: 11px; color: var(--muted); margin-bottom: 16px; }
+  .chart-wrap { position: relative; }
+  .legend { display: flex; flex-wrap: wrap; gap: 12px; margin-top: 12px; }
+  .legend-item { display: flex; align-items: center; gap: 5px; font-size: 11px; color: var(--silver); }
+  .legend-dot { width: 10px; height: 10px; border-radius: 2px; flex-shrink: 0; }
+
+  /* TABLE */
+  .data-table { width: 100%; border-collapse: collapse; font-size: 12px; }
+  .data-table th { background: var(--mid); color: var(--silver); font-weight: 600; text-align: left; padding: 8px 12px; font-size: 11px; text-transform: uppercase; letter-spacing: 0.5px; }
+  .data-table td { padding: 9px 12px; color: var(--silver); border-bottom: 1px solid var(--border); }
+  .data-table tr:last-child td { border-bottom: none; }
+  .data-table tr:nth-child(odd) td { background: rgba(22,36,54,0.4); }
+  .data-table td.bold { color: var(--white); font-weight: 600; }
+  .data-table td.cyan { color: var(--cyan); font-weight: 600; }
+  .data-table td.amber { color: var(--amber); }
+  .data-table td.coral { color: var(--coral); }
+  .data-table td.green { color: var(--green); }
+
+  /* METRIC MINI CARDS */
+  .mini-grid { display: grid; grid-template-columns: repeat(2,1fr); gap: 10px; }
+  .mini-card { background: var(--mid); border-radius: 6px; padding: 12px; }
+  .mini-label { font-size: 10px; color: var(--muted); text-transform: uppercase; letter-spacing: 0.6px; }
+  .mini-val { font-size: 20px; font-weight: 700; color: var(--cyan); margin-top: 4px; }
+  .mini-sub { font-size: 10px; color: var(--muted); margin-top: 2px; }
+
+  /* BADGE */
+  .badge { display: inline-block; padding: 2px 8px; border-radius: 4px; font-size: 11px; font-weight: 600; }
+  .badge.amber { background: rgba(251,191,36,0.12); color: var(--amber); }
+  .badge.coral { background: rgba(255,90,95,0.12); color: var(--coral); }
+  .badge.cyan { background: rgba(0,224,255,0.12); color: var(--cyan); }
+  .badge.green { background: rgba(34,197,94,0.12); color: var(--green); }
+
+  /* ALERT */
+  .alert { background: rgba(255,90,95,0.08); border: 1px solid rgba(255,90,95,0.3); border-radius: 6px; padding: 10px 14px; font-size: 12px; color: var(--coral); margin-top: 12px; display: flex; gap: 8px; align-items: flex-start; }
+
+  /* PROGRESS BAR */
+  .progress-wrap { margin: 4px 0; }
+  .progress-label { display: flex; justify-content: space-between; font-size: 11px; color: var(--silver); margin-bottom: 4px; }
+  .progress-bar { height: 6px; background: var(--mid); border-radius: 3px; overflow: hidden; }
+  .progress-fill { height: 100%; border-radius: 3px; background: var(--cyan); transition: width 1s ease; }
+  .progress-fill.amber { background: var(--amber); }
+  .progress-fill.coral { background: var(--coral); }
+
+  /* SCENARIO CARDS */
+  .scenario-row { display: grid; grid-template-columns: repeat(3,1fr); gap: 16px; margin-bottom: 24px; }
+  .scenario-card { background: var(--deep); border: 1px solid var(--border); border-radius: 8px; padding: 18px; }
+  .scenario-card.highlight { border-color: var(--cyan); }
+  .scenario-name { font-size: 11px; text-transform: uppercase; letter-spacing: 1px; color: var(--muted); margin-bottom: 8px; }
+  .scenario-val { font-size: 28px; font-weight: 700; letter-spacing: -1px; }
+  .scenario-val.base { color: var(--cyan); }
+  .scenario-val.opt { color: var(--green); }
+  .scenario-val.cons { color: var(--silver); }
+  .scenario-desc { font-size: 11px; color: var(--muted); margin-top: 6px; }
+
+  /* FOOTER */
+  .footer { border-top: 1px solid var(--border); padding: 12px 32px; display: flex; justify-content: space-between; align-items: center; margin-top: 24px; }
+  .footer-left { font-size: 11px; color: var(--muted); }
+  .footer-right { font-size: 11px; color: var(--muted); display: flex; gap: 16px; }
+
+  /* COUNTDOWN */
+  .countdown { font-size: 11px; color: var(--muted); }
+  .countdown span { color: var(--cyan); font-weight: 600; }
+
+  /* HIDDEN */
+  .tab-content { display: none; }
+  .tab-content.active { display: block; }
+
+  /* SCROLLBAR */
+  ::-webkit-scrollbar { width: 6px; } ::-webkit-scrollbar-track { background: var(--navy); } ::-webkit-scrollbar-thumb { background: var(--mid); border-radius: 3px; }
+
+  /* RESPONSIVE */
+  @media (max-width:900px) { .kpi-row{grid-template-columns:repeat(2,1fr)} .chart-row.two,.chart-row.wide{grid-template-columns:1fr} .chart-row.three{grid-template-columns:1fr} .scenario-row{grid-template-columns:1fr} }
+</style>
+</head>
+<body>
+
+<!-- HEADER -->
+<header class="header">
+  <div class="logo">
+    <div class="logo-mark">BP</div>
+    <div>
+      <div class="logo-text">BluePay Analytics</div>
+      <div class="logo-sub">Dashboard de Vendas 2026 · YTD Abril</div>
+    </div>
+  </div>
+  <div class="header-right">
+    <div class="countdown">Próxima atualização em <span id="countdown">30:00</span></div>
+    <div class="refresh-badge"><div class="refresh-dot"></div><span>Ao vivo</span></div>
+    <div class="last-update" id="lastUpdate"></div>
+  </div>
+</header>
+
+<!-- TABS -->
+<nav class="tabs">
+  <div class="tab active" onclick="switchTab('visao')">Visão Geral</div>
+  <div class="tab" onclick="switchTab('verticais')">Por Vertical</div>
+  <div class="tab" onclick="switchTab('eficiencia')">Eficiência</div>
+  <div class="tab" onclick="switchTab('projecoes')">Projeções</div>
+</nav>
+
+<!-- ======================== TAB 1: VISÃO GERAL ======================== -->
+<div class="main">
+<div id="tab-visao" class="tab-content active">
+
+  <!-- KPIs -->
+  <div class="kpi-row">
+    <div class="kpi-card">
+      <div class="kpi-label">Receita Acumulada YTD</div>
+      <div class="kpi-value" id="kpi-receita">R$ 127,4M</div>
+      <div class="kpi-delta up">▲ +18,7% vs 2025</div>
+      <div class="kpi-sub">Jan – Abr 2026</div>
+    </div>
+    <div class="kpi-card">
+      <div class="kpi-label">Volume Transacional YTD</div>
+      <div class="kpi-value" id="kpi-volume">R$ 847M</div>
+      <div class="kpi-delta up">▲ +41% vs 2025</div>
+      <div class="kpi-sub">Total processado</div>
+    </div>
+    <div class="kpi-card">
+      <div class="kpi-label">Ticket Médio (Média YTD)</div>
+      <div class="kpi-value" id="kpi-ticket">R$ 4.280</div>
+      <div class="kpi-delta up">▲ +11,2% vs 2025</div>
+      <div class="kpi-sub">Enterprise: R$ 12.400</div>
+    </div>
+    <div class="kpi-card">
+      <div class="kpi-label">Novos Clientes YTD</div>
+      <div class="kpi-value" id="kpi-clientes">187</div>
+      <div class="kpi-delta up">▲ +34% vs 2025</div>
+      <div class="kpi-sub">Clientes ativos: 847</div>
+    </div>
+  </div>
+
+  <!-- CHARTS ROW 1 -->
+  <div class="chart-row" style="grid-template-columns:2fr 1fr; margin-bottom:16px;">
+    <div class="chart-card">
+      <div class="chart-title">Receita Mensal — Realizado vs Projeção 2026</div>
+      <div class="chart-sub">Curva "hockey stick" com inflexão confirmada em março | Valores em R$ Milhões</div>
+      <div class="chart-wrap" style="height:260px">
+        <canvas id="revenueChart" role="img" aria-label="Gráfico de receita mensal BluePay 2026">Receita mensal: Jan 26.2M, Fev 28.7M, Mar 33.1M, Abr 39.4M.</canvas>
+      </div>
+      <div class="legend">
+        <div class="legend-item"><div class="legend-dot" style="background:#00E0FF"></div>Realizado</div>
+        <div class="legend-item"><div class="legend-dot" style="background:#64748B;border:1px dashed #94A3B8"></div>Projeção (cenário base)</div>
+        <div class="legend-item"><div class="legend-dot" style="background:#FBBF24"></div>Meta mensal</div>
+      </div>
+    </div>
+    <div class="chart-card">
+      <div class="chart-title">Crescimento MoM (%)</div>
+      <div class="chart-sub">Aceleração progressiva a cada mês</div>
+      <div class="chart-wrap" style="height:260px">
+        <canvas id="growthChart" role="img" aria-label="Crescimento mês a mês">Crescimento: Jan 9.5%, Fev 9.5%, Mar 15.3%, Abr 19.0%.</canvas>
+      </div>
+    </div>
+  </div>
+
+  <!-- CHARTS ROW 2 -->
+  <div class="chart-row two">
+    <div class="chart-card">
+      <div class="chart-title">Volume Transacional Mensal (R$ M)</div>
+      <div class="chart-sub">+41% YoY — crescimento acelerado de processamento</div>
+      <div class="chart-wrap" style="height:220px">
+        <canvas id="volumeChart" role="img" aria-label="Volume transacional mensal">Volume: Jan 178M, Fev 198M, Mar 224M, Abr 247M.</canvas>
+      </div>
+    </div>
+    <div class="chart-card">
+      <div class="chart-title">Evolução do Ticket Médio (R$)</div>
+      <div class="chart-sub">Crescimento reflete maior penetração enterprise</div>
+      <div class="chart-wrap" style="height:220px">
+        <canvas id="ticketChart" role="img" aria-label="Evolução do ticket médio">Ticket: Jan 3850, Fev 3920, Mar 4150, Abr 4280.</canvas>
+      </div>
+    </div>
+  </div>
+
+  <!-- MONTHLY TABLE -->
+  <div class="chart-card">
+    <div class="chart-title">Resumo Mensal — YTD 2026</div>
+    <div class="chart-sub">Dados consolidados por mês</div>
+    <table class="data-table" style="margin-top:8px">
+      <thead>
+        <tr>
+          <th>Mês</th>
+          <th>Receita (R$M)</th>
+          <th>Cresc. MoM</th>
+          <th>Volume (R$M)</th>
+          <th>Ticket Médio</th>
+          <th>Novos Clientes</th>
+          <th>Meta Atingida</th>
+          <th>Status</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td class="bold">Janeiro</td>
+          <td class="cyan">R$ 26,2M</td>
+          <td class="silver">—</td>
+          <td>R$ 178M</td>
+          <td>R$ 3.850</td>
+          <td>38</td>
+          <td class="coral">94%</td>
+          <td><span class="badge coral">Abaixo</span></td>
+        </tr>
+        <tr>
+          <td class="bold">Fevereiro</td>
+          <td class="cyan">R$ 28,7M</td>
+          <td class="green">+9,5%</td>
+          <td>R$ 198M</td>
+          <td>R$ 3.920</td>
+          <td>42</td>
+          <td class="amber">98%</td>
+          <td><span class="badge amber">Próximo</span></td>
+        </tr>
+        <tr>
+          <td class="bold">Março</td>
+          <td class="cyan">R$ 33,1M</td>
+          <td class="green">+15,3%</td>
+          <td>R$ 224M</td>
+          <td>R$ 4.150</td>
+          <td>51</td>
+          <td class="green">105%</td>
+          <td><span class="badge green">Atingido</span></td>
+        </tr>
+        <tr>
+          <td class="bold">Abril</td>
+          <td class="cyan">R$ 39,4M</td>
+          <td class="green">+19,0%</td>
+          <td>R$ 247M</td>
+          <td>R$ 4.280</td>
+          <td>56</td>
+          <td class="green">112%</td>
+          <td><span class="badge green">Superado</span></td>
+        </tr>
+        <tr style="background:rgba(0,224,255,0.04)">
+          <td class="bold" style="color:var(--muted)">TOTAL YTD</td>
+          <td class="cyan" style="font-weight:700">R$ 127,4M</td>
+          <td class="green">+18,7% YoY</td>
+          <td class="cyan" style="font-weight:700">R$ 847M</td>
+          <td>R$ 4.050 avg</td>
+          <td class="cyan" style="font-weight:700">187</td>
+          <td class="green">108% avg</td>
+          <td><span class="badge cyan">Acima</span></td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+</div>
+
+<!-- ======================== TAB 2: VERTICAIS ======================== -->
+<div id="tab-verticais" class="tab-content">
+
+  <!-- KPI row for verticals -->
+  <div class="kpi-row">
+    <div class="kpi-card">
+      <div class="kpi-label">Prêmios & Incentivos</div>
+      <div class="kpi-value" style="color:var(--cyan)">38%</div>
+      <div class="kpi-delta up">▲ +24% YoY</div>
+      <div class="kpi-sub">R$ 94,1M volume / Abr</div>
+    </div>
+    <div class="kpi-card">
+      <div class="kpi-label">Cartão Multibenefícios</div>
+      <div class="kpi-value" style="color:var(--amber)">33%</div>
+      <div class="kpi-delta up">▲ +67% YoY</div>
+      <div class="kpi-sub">R$ 81,5M volume / Abr</div>
+    </div>
+    <div class="kpi-card">
+      <div class="kpi-label">Reembolso Digital</div>
+      <div class="kpi-value" style="color:var(--coral)">12%</div>
+      <div class="kpi-delta up">▲ Novo produto</div>
+      <div class="kpi-sub">R$ 29,6M volume / Abr</div>
+    </div>
+    <div class="kpi-card">
+      <div class="kpi-label">BlueTech White Label</div>
+      <div class="kpi-value" style="color:var(--green)">17%</div>
+      <div class="kpi-delta up">▲ Expansão enterprise</div>
+      <div class="kpi-sub">R$ 41,8M volume / Abr</div>
+    </div>
+  </div>
+
+  <div class="chart-row" style="grid-template-columns:1fr 1fr; margin-bottom:16px">
+    <div class="chart-card">
+      <div class="chart-title">Share de Receita por Vertical — Abril 2026</div>
+      <div class="chart-sub">Distribuição atual dos produtos | Donut</div>
+      <div class="chart-wrap" style="height:260px">
+        <canvas id="donutChart" role="img" aria-label="Share por vertical">Prêmios 38%, Multibenefícios 33%, White Label 17%, Reembolso 12%.</canvas>
+      </div>
+      <div class="legend" style="justify-content:center">
+        <div class="legend-item"><div class="legend-dot" style="background:#00E0FF"></div>Prêmios & Incentivos 38%</div>
+        <div class="legend-item"><div class="legend-dot" style="background:#FBBF24"></div>Multibenefícios 33%</div>
+        <div class="legend-item"><div class="legend-dot" style="background:#22C55E"></div>White Label 17%</div>
+        <div class="legend-item"><div class="legend-dot" style="background:#FF5A5F"></div>Reembolso 12%</div>
+      </div>
+    </div>
+    <div class="chart-card">
+      <div class="chart-title">Evolução de Share por Vertical — Jan→Abr</div>
+      <div class="chart-sub">Reembolso e White Label ganham share progressivamente</div>
+      <div class="chart-wrap" style="height:260px">
+        <canvas id="stackedChart" role="img" aria-label="Evolução de share por vertical ao longo dos meses">Evolução mensal de share por vertical Jan a Abr.</canvas>
+      </div>
+      <div class="legend">
+        <div class="legend-item"><div class="legend-dot" style="background:#00E0FF"></div>Prêmios</div>
+        <div class="legend-item"><div class="legend-dot" style="background:#FBBF24"></div>Multibenefícios</div>
+        <div class="legend-item"><div class="legend-dot" style="background:#22C55E"></div>White Label</div>
+        <div class="legend-item"><div class="legend-dot" style="background:#FF5A5F"></div>Reembolso</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Clients section -->
+  <div class="chart-row two">
+    <div class="chart-card">
+      <div class="chart-title">Métricas de Clientes — YTD</div>
+      <div class="chart-sub">Indicadores de qualidade e retenção da base</div>
+      <div class="mini-grid" style="margin-top:12px">
+        <div class="mini-card">
+          <div class="mini-label">Clientes Ativos</div>
+          <div class="mini-val">847</div>
+          <div class="mini-sub">+34% vs 2025</div>
+        </div>
+        <div class="mini-card">
+          <div class="mini-label">NRR</div>
+          <div class="mini-val" style="color:var(--green)">108%</div>
+          <div class="mini-sub">Net Revenue Retention</div>
+        </div>
+        <div class="mini-card">
+          <div class="mini-label">LTV/CAC Ratio</div>
+          <div class="mini-val">4,2x</div>
+          <div class="mini-sub">Benchmark: 3x</div>
+        </div>
+        <div class="mini-card">
+          <div class="mini-label">Churn Rate</div>
+          <div class="mini-val" style="color:var(--coral)">2,1%</div>
+          <div class="mini-sub">Setor: 5,8%</div>
+        </div>
+      </div>
+      <div class="chart-wrap" style="height:180px; margin-top:16px">
+        <canvas id="clientChart" role="img" aria-label="Novos clientes por mês">Novos clientes: Jan 38, Fev 42, Mar 51, Abr 56.</canvas>
+      </div>
+    </div>
+    <div class="chart-card">
+      <div class="chart-title">Tabela de Verticais — Detalhamento</div>
+      <div class="chart-sub">Comparativo Share Q1 vs Abril e crescimento YoY</div>
+      <table class="data-table" style="margin-top:12px">
+        <thead>
+          <tr>
+            <th>Vertical</th>
+            <th>Share Q1</th>
+            <th>Share Abr</th>
+            <th>Volume Abr</th>
+            <th>Var. YoY</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td class="bold">Prêmios & Incentivos</td>
+            <td>40%</td>
+            <td class="cyan">38%</td>
+            <td>R$ 94,1M</td>
+            <td class="green">+24%</td>
+          </tr>
+          <tr>
+            <td class="bold">Multibenefícios</td>
+            <td>30%</td>
+            <td class="amber">33%</td>
+            <td>R$ 81,5M</td>
+            <td class="green">+67%</td>
+          </tr>
+          <tr>
+            <td class="bold">Reembolso Digital</td>
+            <td>4%</td>
+            <td class="coral">12%</td>
+            <td>R$ 29,6M</td>
+            <td><span class="badge cyan">Novo</span></td>
+          </tr>
+          <tr>
+            <td class="bold">White Label</td>
+            <td>16%</td>
+            <td class="green">17%</td>
+            <td>R$ 41,8M</td>
+            <td class="green">+89%</td>
+          </tr>
+        </tbody>
+      </table>
+      <div style="margin-top:16px">
+        <div class="chart-sub" style="margin-bottom:10px">Volume por vertical — Abril 2026</div>
+        <div class="progress-wrap">
+          <div class="progress-label"><span>Prêmios & Incentivos</span><span>38% · R$ 94,1M</span></div>
+          <div class="progress-bar"><div class="progress-fill" style="width:38%"></div></div>
+        </div>
+        <div class="progress-wrap">
+          <div class="progress-label"><span>Cartão Multibenefícios</span><span>33% · R$ 81,5M</span></div>
+          <div class="progress-bar"><div class="progress-fill amber" style="width:33%"></div></div>
+        </div>
+        <div class="progress-wrap">
+          <div class="progress-label"><span>BlueTech White Label</span><span>17% · R$ 41,8M</span></div>
+          <div class="progress-bar"><div class="progress-fill" style="width:17%; background:var(--green)"></div></div>
+        </div>
+        <div class="progress-wrap">
+          <div class="progress-label"><span>Reembolso Digital</span><span>12% · R$ 29,6M</span></div>
+          <div class="progress-bar"><div class="progress-fill coral" style="width:12%; background:var(--coral)"></div></div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ======================== TAB 3: EFICIÊNCIA ======================== -->
+<div id="tab-eficiencia" class="tab-content">
+
+  <div class="kpi-row">
+    <div class="kpi-card">
+      <div class="kpi-label">Meta Atingida — Média YTD</div>
+      <div class="kpi-value" style="color:var(--green)">102,3%</div>
+      <div class="kpi-delta up">▲ +8,3 pp acima do target</div>
+      <div class="kpi-sub">Melhor mês: Abril (112%)</div>
+    </div>
+    <div class="kpi-card">
+      <div class="kpi-label">CAC — Custo de Aquisição</div>
+      <div class="kpi-value" style="color:var(--cyan)">−18%</div>
+      <div class="kpi-delta up">▲ Redução vs 2025</div>
+      <div class="kpi-sub">Onboarding digital −18%</div>
+    </div>
+    <div class="kpi-card">
+      <div class="kpi-label">Ciclo de Vendas</div>
+      <div class="kpi-value">31 dias</div>
+      <div class="kpi-delta up">▼ Era 47 dias (−34%)</div>
+      <div class="kpi-sub">Fluxo auto-guiado</div>
+    </div>
+    <div class="kpi-card">
+      <div class="kpi-label">Pipeline Coverage Q2</div>
+      <div class="kpi-value" style="color:var(--amber)">1,4x</div>
+      <div class="kpi-delta up">▲ Acima do necessário</div>
+      <div class="kpi-sub">Risco: concentração em 1 vertical</div>
+    </div>
+  </div>
+
+  <div class="chart-row two" style="margin-bottom:16px">
+    <div class="chart-card">
+      <div class="chart-title">Meta vs Realizado por Mês (%)</div>
+      <div class="chart-sub">Evolução de atingimento mensal — tendência de aceleração</div>
+      <div class="chart-wrap" style="height:260px">
+        <canvas id="metaChart" role="img" aria-label="Meta versus realizado por mês">Meta realizada: Jan 94%, Fev 98%, Mar 105%, Abr 112%.</canvas>
+      </div>
+    </div>
+    <div class="chart-card">
+      <div class="chart-title">Funil de Pipeline — Q2 2026</div>
+      <div class="chart-sub">Distribuição de oportunidades por estágio</div>
+      <div class="chart-wrap" style="height:260px">
+        <canvas id="funnelChart" role="img" aria-label="Funil de pipeline Q2">Funil de vendas por estágio.</canvas>
+      </div>
+    </div>
+  </div>
+
+  <div class="chart-row two">
+    <div class="chart-card">
+      <div class="chart-title">Indicadores de Eficiência Comercial</div>
+      <div class="chart-sub">Comparativo YTD 2026 vs 2025</div>
+      <table class="data-table" style="margin-top:8px">
+        <thead>
+          <tr><th>Métrica</th><th>2025</th><th>2026 YTD</th><th>Variação</th><th>Status</th></tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td class="bold">Ciclo de Vendas</td>
+            <td>47 dias</td>
+            <td class="cyan">31 dias</td>
+            <td class="green">−34%</td>
+            <td><span class="badge green">Ótimo</span></td>
+          </tr>
+          <tr>
+            <td class="bold">Win Rate</td>
+            <td>38%</td>
+            <td class="cyan">46%</td>
+            <td class="green">+8 pp</td>
+            <td><span class="badge green">Ótimo</span></td>
+          </tr>
+          <tr>
+            <td class="bold">CAC Médio</td>
+            <td>R$ 8.400</td>
+            <td class="cyan">R$ 6.888</td>
+            <td class="green">−18%</td>
+            <td><span class="badge green">Ótimo</span></td>
+          </tr>
+          <tr>
+            <td class="bold">CAC Enterprise</td>
+            <td>R$ 14.200</td>
+            <td class="cyan">R$ 8.520</td>
+            <td class="green">−40%</td>
+            <td><span class="badge cyan">Via Parcerias</span></td>
+          </tr>
+          <tr>
+            <td class="bold">Pipeline Coverage</td>
+            <td>1,1x</td>
+            <td class="amber">1,4x</td>
+            <td class="green">+27%</td>
+            <td><span class="badge amber">Atenção</span></td>
+          </tr>
+          <tr>
+            <td class="bold">Churn Rate</td>
+            <td>2,8%</td>
+            <td class="green">2,1%</td>
+            <td class="green">−0,7 pp</td>
+            <td><span class="badge green">Ótimo</span></td>
+          </tr>
+        </tbody>
+      </table>
+      <div class="alert">
+        <span>⚠</span>
+        <span>23% dos deals em estágio avançado concentrados em um único vertical (Prêmios). Risco de concentração identificado — diversificar SDRs para Multibenefícios e White Label.</span>
+      </div>
+    </div>
+    <div class="chart-card">
+      <div class="chart-title">Distribuição de Pipeline por Vertical — Q2</div>
+      <div class="chart-sub">Concentração excessiva em Prêmios & Incentivos</div>
+      <div class="chart-wrap" style="height:200px; margin-top:8px">
+        <canvas id="pipelineChart" role="img" aria-label="Pipeline por vertical Q2">Pipeline: Prêmios 52%, Multibenefícios 24%, White Label 14%, Reembolso 10%.</canvas>
+      </div>
+      <div style="margin-top:16px">
+        <div class="chart-sub" style="margin-bottom:10px">Atingimento de meta por SDR — Abril</div>
+        <div class="progress-wrap">
+          <div class="progress-label"><span>Time Prêmios</span><span>118%</span></div>
+          <div class="progress-bar"><div class="progress-fill" style="width:100%"></div></div>
+        </div>
+        <div class="progress-wrap">
+          <div class="progress-label"><span>Time Multibenefícios</span><span>109%</span></div>
+          <div class="progress-bar"><div class="progress-fill" style="width:91%"></div></div>
+        </div>
+        <div class="progress-wrap">
+          <div class="progress-label"><span>Time White Label</span><span>105%</span></div>
+          <div class="progress-bar"><div class="progress-fill amber" style="width:87%"></div></div>
+        </div>
+        <div class="progress-wrap">
+          <div class="progress-label"><span>Time Reembolso</span><span>98%</span></div>
+          <div class="progress-bar"><div class="progress-fill coral" style="width:82%"></div></div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ======================== TAB 4: PROJEÇÕES ======================== -->
+<div id="tab-projecoes" class="tab-content">
+
+  <!-- Scenarios -->
+  <div class="scenario-row">
+    <div class="scenario-card">
+      <div class="scenario-name">Cenário Conservador</div>
+      <div class="scenario-val cons">R$ 186M</div>
+      <div class="chart-sub" style="margin-top:6px">Receita H1 2026</div>
+      <div class="scenario-desc">Crescimento estabilizado; sem novos White Label; retração parcial de pipeline Q2.</div>
+    </div>
+    <div class="scenario-card highlight">
+      <div class="scenario-name">Cenário Base <span class="badge cyan" style="margin-left:6px">Preferido</span></div>
+      <div class="scenario-val base">R$ 198M</div>
+      <div class="chart-sub" style="margin-top:6px">Receita H1 2026</div>
+      <div class="scenario-desc">Manutenção da curva atual + 5 novos clientes White Label + cross-sell de Multibenefícios.</div>
+    </div>
+    <div class="scenario-card">
+      <div class="scenario-name">Cenário Otimista</div>
+      <div class="scenario-val opt">R$ 215M</div>
+      <div class="chart-sub" style="margin-top:6px">Receita H1 2026 <span style="color:var(--green);font-size:11px">+8,6% upside</span></div>
+      <div class="scenario-desc">Aceleração White Label + canal de parceiros ativado + antecipação do time-to-live por 2 semanas.</div>
+    </div>
+  </div>
+
+  <!-- Projection Charts -->
+  <div class="chart-row" style="grid-template-columns:2fr 1fr; margin-bottom:16px">
+    <div class="chart-card">
+      <div class="chart-title">Projeção de Receita Mensal — Jan a Dez 2026</div>
+      <div class="chart-sub">Realizado (Jan–Abr) + Projeção por cenário (Mai–Dez) | R$ Milhões</div>
+      <div class="chart-wrap" style="height:280px">
+        <canvas id="projChart" role="img" aria-label="Projeção de receita 2026">Projeção de receita mensal de janeiro a dezembro 2026.</canvas>
+      </div>
+      <div class="legend">
+        <div class="legend-item"><div class="legend-dot" style="background:#00E0FF"></div>Realizado</div>
+        <div class="legend-item"><div class="legend-dot" style="background:#64748B"></div>Conservador</div>
+        <div class="legend-item"><div class="legend-dot" style="background:#FBBF24"></div>Base</div>
+        <div class="legend-item"><div class="legend-dot" style="background:#22C55E"></div>Otimista</div>
+      </div>
+    </div>
+    <div class="chart-card">
+      <div class="chart-title">Sensibilidade — Impacto por Alavanca</div>
+      <div class="chart-sub">Cada variável e seu efeito na receita H1</div>
+      <div style="margin-top:16px">
+        <div class="progress-wrap">
+          <div class="progress-label"><span>White Label: +1 cliente</span><span>+R$ 3,6M</span></div>
+          <div class="progress-bar"><div class="progress-fill" style="width:72%"></div></div>
+        </div>
+        <div class="progress-wrap">
+          <div class="progress-label"><span>Time-to-live −1 semana</span><span>+R$ 2,1M</span></div>
+          <div class="progress-bar"><div class="progress-fill" style="width:42%"></div></div>
+        </div>
+        <div class="progress-wrap">
+          <div class="progress-label"><span>Cross-sell Multi +1%</span><span>+R$ 1,8M</span></div>
+          <div class="progress-bar"><div class="progress-fill amber" style="width:36%"></div></div>
+        </div>
+        <div class="progress-wrap">
+          <div class="progress-label"><span>Churn −0,5 pp</span><span>+R$ 0,9M</span></div>
+          <div class="progress-bar"><div class="progress-fill" style="width:18%; background:var(--green)"></div></div>
+        </div>
+      </div>
+      <div style="margin-top:20px">
+        <div class="chart-sub" style="margin-bottom:10px">Projeção de Receita Anual 2026</div>
+        <div class="mini-grid">
+          <div class="mini-card">
+            <div class="mini-label">Conservador</div>
+            <div class="mini-val" style="color:var(--silver)">R$ 348M</div>
+            <div class="mini-sub">H2 est. R$ 162M</div>
+          </div>
+          <div class="mini-card">
+            <div class="mini-label">Base</div>
+            <div class="mini-val">R$ 385M</div>
+            <div class="mini-sub">H2 est. R$ 187M</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Monthly projection table -->
+  <div class="chart-card">
+    <div class="chart-title">Tabela de Projeção Mensal — 2026 Completo</div>
+    <div class="chart-sub">Valores em R$ Milhões | Projeções a partir de Maio</div>
+    <table class="data-table" style="margin-top:8px">
+      <thead>
+        <tr>
+          <th>Mês</th>
+          <th>Status</th>
+          <th>Realizado</th>
+          <th>Conservador</th>
+          <th>Base</th>
+          <th>Otimista</th>
+          <th>Cresc. Base MoM</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr><td class="bold">Janeiro</td><td><span class="badge cyan">Real</span></td><td class="cyan">R$ 26,2M</td><td>—</td><td>—</td><td>—</td><td>—</td></tr>
+        <tr><td class="bold">Fevereiro</td><td><span class="badge cyan">Real</span></td><td class="cyan">R$ 28,7M</td><td>—</td><td>—</td><td>—</td><td class="green">+9,5%</td></tr>
+        <tr><td class="bold">Março</td><td><span class="badge cyan">Real</span></td><td class="cyan">R$ 33,1M</td><td>—</td><td>—</td><td>—</td><td class="green">+15,3%</td></tr>
+        <tr><td class="bold">Abril</td><td><span class="badge cyan">Real</span></td><td class="cyan">R$ 39,4M</td><td>—</td><td>—</td><td>—</td><td class="green">+19,0%</td></tr>
+        <tr><td class="bold">Maio</td><td><span class="badge amber">Proj.</span></td><td>—</td><td>R$ 41,8M</td><td class="amber">R$ 44,6M</td><td class="green">R$ 48,2M</td><td class="amber">+13,2%</td></tr>
+        <tr><td class="bold">Junho</td><td><span class="badge amber">Proj.</span></td><td>—</td><td>R$ 44,2M</td><td class="amber">R$ 48,2M</td><td class="green">R$ 52,8M</td><td class="amber">+8,1%</td></tr>
+        <tr><td class="bold">Julho</td><td><span class="badge amber">Proj.</span></td><td>—</td><td>R$ 46,0M</td><td class="amber">R$ 51,4M</td><td class="green">R$ 57,2M</td><td class="amber">+6,6%</td></tr>
+        <tr><td class="bold">Agosto</td><td><span class="badge amber">Proj.</span></td><td>—</td><td>R$ 47,8M</td><td class="amber">R$ 54,3M</td><td class="green">R$ 61,0M</td><td class="amber">+5,6%</td></tr>
+        <tr><td class="bold">Setembro</td><td><span class="badge amber">Proj.</span></td><td>—</td><td>R$ 49,1M</td><td class="amber">R$ 57,6M</td><td class="green">R$ 64,4M</td><td class="amber">+6,1%</td></tr>
+        <tr><td class="bold">Outubro</td><td><span class="badge amber">Proj.</span></td><td>—</td><td>R$ 50,6M</td><td class="amber">R$ 60,2M</td><td class="green">R$ 67,8M</td><td class="amber">+4,5%</td></tr>
+        <tr><td class="bold">Novembro</td><td><span class="badge amber">Proj.</span></td><td>—</td><td>R$ 52,1M</td><td class="amber">R$ 63,1M</td><td class="green">R$ 70,6M</td><td class="amber">+4,8%</td></tr>
+        <tr><td class="bold">Dezembro</td><td><span class="badge amber">Proj.</span></td><td>—</td><td>R$ 55,8M</td><td class="amber">R$ 68,6M</td><td class="green">R$ 77,2M</td><td class="amber">+8,7%</td></tr>
+        <tr style="background:rgba(0,224,255,0.04)">
+          <td class="bold" style="color:var(--muted)">TOTAL 2026</td>
+          <td>—</td>
+          <td class="cyan" style="font-weight:700">R$ 127,4M*</td>
+          <td style="font-weight:700; color:var(--silver)">R$ 348M</td>
+          <td class="amber" style="font-weight:700">R$ 385M</td>
+          <td class="green" style="font-weight:700">R$ 419M</td>
+          <td>—</td>
+        </tr>
+      </tbody>
+    </table>
+    <div style="font-size:10px; color:var(--muted); margin-top:8px">* YTD realizado até Abril 2026. Projeções baseadas em análise de cenários BluePay Intelligence. Próxima revisão: 15 de Maio 2026.</div>
+  </div>
+</div>
+
+</div><!-- /main -->
+
+<!-- FOOTER -->
+<footer class="footer">
+  <div class="footer-left">Bluepay Solutions · Dados internos consolidados · YTD Abr 2026 · Confidencial</div>
+  <div class="footer-right">
+    <span>Fonte: Sistema CRM BluePay + Financeiro</span>
+    <span>Atualização automática: a cada 30 min</span>
+  </div>
+</footer>
+
+<script>
+/* ===== DATA ===== */
+const months = ['Jan','Fev','Mar','Abr','Mai','Jun','Jul','Ago','Set','Out','Nov','Dez'];
+const actual = [26.2, 28.7, 33.1, 39.4, null, null, null, null, null, null, null, null];
+const projBase = [null, null, null, null, 44.6, 48.2, 51.4, 54.3, 57.6, 60.2, 63.1, 68.6];
+const projCons = [null, null, null, null, 41.8, 44.2, 46.0, 47.8, 49.1, 50.6, 52.1, 55.8];
+const projOpt  = [null, null, null, null, 48.2, 52.8, 57.2, 61.0, 64.4, 67.8, 70.6, 77.2];
+const targets  = [27.9, 29.3, 31.5, 35.2, 43.0, 47.0, 51.0, 54.0, 57.0, 60.0, 63.0, 66.0];
+
+const C = { navy:'#0B1320', deep:'#0F1B2E', mid:'#162436', border:'#1E293B', cyan:'#00E0FF', cyanA:'rgba(0,224,255,0.15)', coral:'#FF5A5F', amber:'#FBBF24', white:'#FFFFFF', silver:'#94A3B8', muted:'#64748B', green:'#22C55E' };
+
+Chart.defaults.color = C.silver;
+Chart.defaults.borderColor = C.border;
+Chart.defaults.font.family = "'Segoe UI', system-ui, sans-serif";
+Chart.defaults.font.size = 11;
+
+/* ===== TAB SWITCH ===== */
+function switchTab(id) {
+  document.querySelectorAll('.tab').forEach((t,i) => {
+    const ids = ['visao','verticais','eficiencia','projecoes'];
+    t.classList.toggle('active', ids[i] === id);
+  });
+  document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
+  document.getElementById('tab-'+id).classList.add('active');
+}
+
+/* ===== TIMESTAMP ===== */
+function updateTimestamp() {
+  const now = new Date();
+  document.getElementById('lastUpdate').textContent = 'Atualizado: ' + now.toLocaleTimeString('pt-BR', {hour:'2-digit', minute:'2-digit'});
+}
+updateTimestamp();
+
+/* ===== COUNTDOWN TIMER ===== */
+let secondsLeft = 1800;
+function tick() {
+  const m = String(Math.floor(secondsLeft/60)).padStart(2,'0');
+  const s = String(secondsLeft%60).padStart(2,'0');
+  document.getElementById('countdown').textContent = m + ':' + s;
+  if (secondsLeft === 0) { refreshData(); secondsLeft = 1800; }
+  else secondsLeft--;
+}
+setInterval(tick, 1000);
+
+/* ===== SIMULATE DATA REFRESH ===== */
+function refreshData() {
+  updateTimestamp();
+  const jitter = () => (Math.random() - 0.5) * 0.4;
+  actual[3] = parseFloat((39.4 + jitter()).toFixed(1));
+  document.getElementById('kpi-receita').textContent = 'R$ 127,4M';
+  revenueChart.update();
+}
+
+/* ===== CHART: REVENUE TREND ===== */
+const revenueChart = new Chart(document.getElementById('revenueChart'), {
+  type: 'line',
+  data: {
+    labels: months,
+    datasets: [
+      {
+        label: 'Realizado',
+        data: actual,
+        borderColor: C.cyan,
+        backgroundColor: C.cyanA,
+        borderWidth: 2.5,
+        fill: true,
+        tension: 0.35,
+        pointBackgroundColor: C.cyan,
+        pointRadius: d => d.dataIndex < 4 ? 5 : 0,
+        spanGaps: false
+      },
+      {
+        label: 'Projeção Base',
+        data: [null, null, null, 39.4, ...projBase.slice(4)],
+        borderColor: C.muted,
+        borderDash: [6,4],
+        borderWidth: 1.5,
+        fill: false,
+        tension: 0.35,
+        pointRadius: 0,
+        spanGaps: false
+      },
+      {
+        label: 'Meta',
+        data: targets,
+        borderColor: C.amber,
+        borderDash: [3,3],
+        borderWidth: 1.5,
+        fill: false,
+        tension: 0.35,
+        pointRadius: 0
+      }
+    ]
+  },
+  options: {
+    responsive: true, maintainAspectRatio: false,
+    plugins: { legend: { display: false }, tooltip: { backgroundColor: C.deep, borderColor: C.border, borderWidth: 1, callbacks: { label: ctx => ` R$ ${ctx.parsed.y?.toFixed(1)}M` } } },
+    scales: {
+      x: { grid: { color: C.border }, ticks: { color: C.muted } },
+      y: { grid: { color: C.border }, ticks: { color: C.muted, callback: v => 'R$'+v+'M' }, beginAtZero: false, min: 20 }
+    }
+  }
+});
+
+/* ===== CHART: GROWTH MOM ===== */
+new Chart(document.getElementById('growthChart'), {
+  type: 'bar',
+  data: {
+    labels: ['Jan','Fev','Mar','Abr'],
+    datasets: [{
+      label: 'Cresc. MoM %',
+      data: [0, 9.5, 15.3, 19.0],
+      backgroundColor: [C.muted, C.cyan+'99', C.cyan+'CC', C.cyan],
+      borderColor: 'transparent',
+      borderRadius: 4
+    }]
+  },
+  options: {
+    responsive: true, maintainAspectRatio: false,
+    plugins: { legend: { display: false }, tooltip: { backgroundColor: C.deep, borderColor: C.border, borderWidth: 1, callbacks: { label: ctx => ` ${ctx.parsed.y?.toFixed(1)}%` } } },
+    scales: {
+      x: { grid: { color: 'transparent' }, ticks: { color: C.muted } },
+      y: { grid: { color: C.border }, ticks: { color: C.muted, callback: v => v+'%' }, beginAtZero: true }
+    }
+  }
+});
+
+/* ===== CHART: VOLUME ===== */
+new Chart(document.getElementById('volumeChart'), {
+  type: 'bar',
+  data: {
+    labels: ['Jan','Fev','Mar','Abr'],
+    datasets: [{
+      label: 'Volume (R$M)',
+      data: [178, 198, 224, 247],
+      backgroundColor: [C.cyan+'55', C.cyan+'77', C.cyan+'99', C.cyan],
+      borderColor: 'transparent',
+      borderRadius: 4
+    }]
+  },
+  options: {
+    responsive: true, maintainAspectRatio: false,
+    plugins: { legend: { display: false }, tooltip: { backgroundColor: C.deep, borderColor: C.border, borderWidth: 1, callbacks: { label: ctx => ` R$ ${ctx.parsed.y}M` } } },
+    scales: {
+      x: { grid: { color: 'transparent' }, ticks: { color: C.muted } },
+      y: { grid: { color: C.border }, ticks: { color: C.muted, callback: v => 'R$'+v+'M' }, min: 150 }
+    }
+  }
+});
+
+/* ===== CHART: TICKET ===== */
+new Chart(document.getElementById('ticketChart'), {
+  type: 'line',
+  data: {
+    labels: ['Jan','Fev','Mar','Abr'],
+    datasets: [{
+      label: 'Ticket Médio',
+      data: [3850, 3920, 4150, 4280],
+      borderColor: C.amber,
+      backgroundColor: 'rgba(251,191,36,0.1)',
+      borderWidth: 2.5,
+      fill: true,
+      tension: 0.4,
+      pointBackgroundColor: C.amber,
+      pointRadius: 5
+    }]
+  },
+  options: {
+    responsive: true, maintainAspectRatio: false,
+    plugins: { legend: { display: false }, tooltip: { backgroundColor: C.deep, borderColor: C.border, borderWidth: 1, callbacks: { label: ctx => ` R$ ${ctx.parsed.y?.toLocaleString('pt-BR')}` } } },
+    scales: {
+      x: { grid: { color: 'transparent' }, ticks: { color: C.muted } },
+      y: { grid: { color: C.border }, ticks: { color: C.muted, callback: v => 'R$'+v.toLocaleString('pt-BR') }, min: 3600 }
+    }
+  }
+});
+
+/* ===== CHART: DONUT ===== */
+new Chart(document.getElementById('donutChart'), {
+  type: 'doughnut',
+  data: {
+    labels: ['Prêmios & Incentivos','Multibenefícios','White Label','Reembolso Digital'],
+    datasets: [{
+      data: [38, 33, 17, 12],
+      backgroundColor: [C.cyan, C.amber, C.green, C.coral],
+      borderColor: C.navy,
+      borderWidth: 3,
+      hoverOffset: 8
+    }]
+  },
+  options: {
+    responsive: true, maintainAspectRatio: false, cutout: '65%',
+    plugins: { legend: { display: false }, tooltip: { backgroundColor: C.deep, borderColor: C.border, borderWidth: 1, callbacks: { label: ctx => ` ${ctx.label}: ${ctx.parsed}%` } } }
+  }
+});
+
+/* ===== CHART: STACKED ===== */
+new Chart(document.getElementById('stackedChart'), {
+  type: 'bar',
+  data: {
+    labels: ['Jan','Fev','Mar','Abr'],
+    datasets: [
+      { label: 'Prêmios & Incentivos', data: [44, 42, 40, 38], backgroundColor: C.cyan+'CC', stack:'a', borderRadius:{topLeft:0,topRight:0,bottomLeft:4,bottomRight:4} },
+      { label: 'Multibenefícios',       data: [30, 31, 32, 33], backgroundColor: C.amber+'CC', stack:'a' },
+      { label: 'White Label',           data: [16, 16, 17, 17], backgroundColor: C.green+'CC', stack:'a' },
+      { label: 'Reembolso Digital',     data: [0, 4, 8, 12],    backgroundColor: C.coral+'CC', stack:'a', borderRadius:{topLeft:4,topRight:4,bottomLeft:0,bottomRight:0} }
+    ]
+  },
+  options: {
+    responsive: true, maintainAspectRatio: false,
+    plugins: { legend: { display: false }, tooltip: { backgroundColor: C.deep, borderColor: C.border, borderWidth: 1 } },
+    scales: {
+      x: { stacked: true, grid: { color: 'transparent' }, ticks: { color: C.muted } },
+      y: { stacked: true, grid: { color: C.border }, ticks: { color: C.muted, callback: v => v+'%' }, max: 100 }
+    }
+  }
+});
+
+/* ===== CHART: CLIENTS ===== */
+new Chart(document.getElementById('clientChart'), {
+  type: 'bar',
+  data: {
+    labels: ['Jan','Fev','Mar','Abr'],
+    datasets: [{
+      label: 'Novos Clientes',
+      data: [38, 42, 51, 56],
+      backgroundColor: [C.cyan+'44', C.cyan+'66', C.cyan+'99', C.cyan],
+      borderColor: 'transparent',
+      borderRadius: 4
+    }]
+  },
+  options: {
+    responsive: true, maintainAspectRatio: false,
+    plugins: { legend: { display: false } },
+    scales: {
+      x: { grid: { color: 'transparent' }, ticks: { color: C.muted } },
+      y: { grid: { color: C.border }, ticks: { color: C.muted }, beginAtZero: true }
+    }
+  }
+});
+
+/* ===== CHART: META VS REALIZADO ===== */
+new Chart(document.getElementById('metaChart'), {
+  type: 'bar',
+  data: {
+    labels: ['Janeiro','Fevereiro','Março','Abril'],
+    datasets: [
+      {
+        label: 'Meta (%)',
+        data: [100, 100, 100, 100],
+        backgroundColor: C.border,
+        borderColor: 'transparent',
+        borderRadius: 4,
+        categoryPercentage: 0.7,
+        barPercentage: 0.45
+      },
+      {
+        label: 'Realizado (%)',
+        data: [94, 98, 105, 112],
+        backgroundColor: [C.coral, C.amber, C.cyan+'AA', C.green],
+        borderColor: 'transparent',
+        borderRadius: 4,
+        categoryPercentage: 0.7,
+        barPercentage: 0.45
+      }
+    ]
+  },
+  options: {
+    responsive: true, maintainAspectRatio: false,
+    plugins: { legend: { display: false }, tooltip: { backgroundColor: C.deep, borderColor: C.border, borderWidth: 1, callbacks: { label: ctx => ` ${ctx.dataset.label}: ${ctx.parsed.y}%` } } },
+    scales: {
+      x: { grid: { color: 'transparent' }, ticks: { color: C.muted } },
+      y: { grid: { color: C.border }, ticks: { color: C.muted, callback: v => v+'%' }, min: 80 }
+    }
+  }
+});
+
+/* ===== CHART: FUNIL ===== */
+new Chart(document.getElementById('funnelChart'), {
+  type: 'bar',
+  data: {
+    labels: ['Leads','Qualificados','Proposta','Negociação','Fechamento'],
+    datasets: [{
+      label: 'Deals',
+      data: [320, 184, 96, 48, 22],
+      backgroundColor: [C.cyan+'33', C.cyan+'55', C.cyan+'77', C.cyan+'AA', C.cyan],
+      borderColor: 'transparent',
+      borderRadius: 4
+    }]
+  },
+  options: {
+    responsive: true, maintainAspectRatio: false,
+    indexAxis: 'y',
+    plugins: { legend: { display: false }, tooltip: { backgroundColor: C.deep, borderColor: C.border, borderWidth: 1, callbacks: { label: ctx => ` ${ctx.parsed.x} deals` } } },
+    scales: {
+      x: { grid: { color: C.border }, ticks: { color: C.muted } },
+      y: { grid: { color: 'transparent' }, ticks: { color: C.silver } }
+    }
+  }
+});
+
+/* ===== CHART: PIPELINE VERTICAL ===== */
+new Chart(document.getElementById('pipelineChart'), {
+  type: 'doughnut',
+  data: {
+    labels: ['Prêmios (52%)','Multibenefícios (24%)','White Label (14%)','Reembolso (10%)'],
+    datasets: [{
+      data: [52, 24, 14, 10],
+      backgroundColor: [C.coral+'CC', C.amber+'CC', C.cyan+'CC', C.green+'99'],
+      borderColor: C.navy,
+      borderWidth: 3,
+      hoverOffset: 6
+    }]
+  },
+  options: {
+    responsive: true, maintainAspectRatio: false, cutout: '60%',
+    plugins: { legend: { display: false }, tooltip: { backgroundColor: C.deep, borderColor: C.border, borderWidth: 1 } }
+  }
+});
+
+/* ===== CHART: PROJECTION ===== */
+new Chart(document.getElementById('projChart'), {
+  type: 'line',
+  data: {
+    labels: months,
+    datasets: [
+      {
+        label: 'Realizado',
+        data: actual,
+        borderColor: C.cyan,
+        backgroundColor: C.cyanA,
+        borderWidth: 3,
+        fill: true,
+        tension: 0.35,
+        pointBackgroundColor: C.cyan,
+        pointRadius: d => d.dataIndex < 4 ? 5 : 0,
+        spanGaps: false
+      },
+      {
+        label: 'Conservador',
+        data: [null, null, null, 39.4, ...projCons.slice(4)],
+        borderColor: C.muted,
+        borderDash: [6,4],
+        borderWidth: 1.5,
+        fill: false,
+        tension: 0.35,
+        pointRadius: 0,
+        spanGaps: false
+      },
+      {
+        label: 'Base',
+        data: [null, null, null, 39.4, ...projBase.slice(4)],
+        borderColor: C.amber,
+        borderDash: [4,3],
+        borderWidth: 2,
+        fill: false,
+        tension: 0.35,
+        pointRadius: 0,
+        spanGaps: false
+      },
+      {
+        label: 'Otimista',
+        data: [null, null, null, 39.4, ...projOpt.slice(4)],
+        borderColor: C.green,
+        borderDash: [3,3],
+        borderWidth: 1.5,
+        fill: false,
+        tension: 0.35,
+        pointRadius: 0,
+        spanGaps: false
+      }
+    ]
+  },
+  options: {
+    responsive: true, maintainAspectRatio: false,
+    plugins: { legend: { display: false }, tooltip: { backgroundColor: C.deep, borderColor: C.border, borderWidth: 1, callbacks: { label: ctx => ` ${ctx.dataset.label}: R$ ${ctx.parsed.y?.toFixed(1)}M` } } },
+    scales: {
+      x: { grid: { color: C.border }, ticks: { color: C.muted } },
+      y: { grid: { color: C.border }, ticks: { color: C.muted, callback: v => 'R$'+v+'M' }, beginAtZero: false, min: 20 }
+    }
+  }
+});
+
+</script>
+</body>
+</html>
