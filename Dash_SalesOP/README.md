@@ -45,13 +45,13 @@ pnpm install
 3. Inicie o servidor de desenvolvimento:
 
 ```bash
-pnpm dev -- --host
+pnpm dev
 ```
 
 4. Abra no navegador:
 
 ```text
-http://localhost:5173
+http://localhost:3000
 ```
 
 > O `--host` permite acesso a partir de outras máquinas da mesma rede, útil em intranetes.
